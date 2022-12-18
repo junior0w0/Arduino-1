@@ -1,61 +1,19 @@
-/*
-ESP32-CAM PIR人體移動感測器啟動影像上傳Google雲端硬碟
-Author : ChungYi Fu (Kaohsiung, Taiwan)  2021-6-30 00:00
-https://www.facebook.com/francefu
 
-PIR人體移動感測器 -> GND, IO13, 3.3V
+const char* ssid     = "Anik";    
+const char* password = "putra123";  
+int pinPIR = 12;   
+int pinLED = 33;
+String myScript = "https://script.google.com/macros/s/AKfycbwsP3nwh8UAhAcuxhP9ni3LMXWeWI9Gf1GqLAS2lnHZzwd53DxXsKuxmg8YocqZBokC/exec";   
 
-Google Script管理介面
-https://script.google.com/home
-https://script.google.com/home/executions
-
-Google雲端硬碟
-https://drive.google.com/drive/my-drive
-
-Google Script程式碼
-
-function doPost(e) {
-  var myFoldername = e.parameter.myFoldername;  //取得資料夾名
-  var myFile = e.parameter.myFile;  //取得影像
-  var myFilename = Utilities.formatDate(new Date(), "GMT+8", "yyyyMMddHHmmss")+"_"+e.parameter.myFilename;  //取得影像檔名
-  
-  var contentType = myFile.substring(myFile.indexOf(":")+1, myFile.indexOf(";"));
-  var data = myFile.substring(myFile.indexOf(",")+1);
-  data = Utilities.base64Decode(data);
-  var blob = Utilities.newBlob(data, contentType, myFilename);
-  
-  var folder, folders = DriveApp.getFoldersByName(myFoldername);
-  if (folders.hasNext()) {
-    folder = folders.next();
-  } else {
-    folder = DriveApp.createFolder(myFoldername);
-  }
-  var file = folder.createFile(blob);    
-  file.setDescription("Uploaded by " + myFilename);
-  
-  var imageID = file.getUrl().substring(file.getUrl().indexOf("/d/")+3,file.getUrl().indexOf("view")-1);
-  var imageUrl = "https://drive.google.com/uc?authuser=0&id="+imageID; 
-    
-  return  ContentService.createTextOutput(myFoldername+"/"+myFilename+"\n"+imageUrl);
-}
-
-*/
-
-//輸入Wi-Fi帳密
-const char* ssid     = "teacher";    //Wi-Fi帳號
-const char* password = "87654321";   //Wi-Fi密碼
-int pinPIR = 13;   //PIR人體移動感測器腳位
-String myScript = "/macros/s/**********ID**********/exec";    //設定Google Script路徑
-
-String myFoldername = "&myFoldername=ESP32-CAM";    //設定Google drive存放影像資料夾名
-String myFilename = "&myFilename=ESP32-CAM.jpg";    //設定Google drive存放影像檔名 (檔名格式：上傳時間+"_"+檔名)
+String myFoldername = "&myFoldername=ESP32-CAM";    
+String myFilename = "&myFilename=ESP32-CAM.jpg";   
 String myImage = "&myFile=";
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
-#include "Base64.h"  //不可使用Arduino IDE內建的函式庫，請從我的github下載Base64.cpp, Base64.h與ino檔置於同一資料夾加入檔案
+#include "Base64.h"  
 #include "esp_camera.h"
 
 //Arduino IDE開發版選擇 ESP32 Wrover Module
@@ -117,7 +75,7 @@ void setup()
   //                      for larger pre-allocated frame buffer.
   if(psramFound()){  //是否有PSRAM(Psuedo SRAM)記憶體IC
     config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 10;
+    config.jpeg_quality = 60;
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_SVGA;
@@ -137,7 +95,7 @@ void setup()
   // initial sensors are flipped vertically and colors are a bit saturated
   if (s->id.PID == OV3660_PID) {
     s->set_vflip(s, 1); // flip it back
-    s->set_brightness(s, 1); // up the brightness just a bit
+    s->set_brightness(s, 2); // up the brightness just a bit
     s->set_saturation(s, -2); // lower the saturation
   }
   // drop down frame size for higher initial frame rate
@@ -195,6 +153,17 @@ void setup()
   SendCapturedImage2GoogleDrive();
 
   pinMode(pinPIR, INPUT_PULLUP);  //設定上拉電阻
+  pinMode(pinLED, OUTPUT);  //設定上拉電阻
+}
+
+void blink(int blink)
+{
+  for (int i = 0; i < blink;i++){
+  digitalWrite(pinLED, LOW);
+  delay(100);
+  digitalWrite(pinLED, HIGH);
+  delay(100);
+  }
 }
 
 void loop()
@@ -204,6 +173,7 @@ void loop()
   if (v==1) {
     SendCapturedImage2GoogleDrive();
     //Serial.println(SendCapturedImage2GoogleDrive());  //取回傳送結果輸出序列埠
+    blink(5);
     delay(5000);  //視延遲時間設定，最小為5秒
   }
   else
