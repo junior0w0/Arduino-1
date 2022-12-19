@@ -1,6 +1,8 @@
 
-const char* ssid     = "Anik";    
-const char* password = "putra123";  
+// const char* ssid     = "Anik";    
+// const char* password = "putra123";  
+const char* ssid     = "Kost Bu Sar";    
+const char* password = "jakalbawah";  
 int pinPIR = 12;   
 int pinLED = 33;
 String myScript = "https://script.google.com/macros/s/AKfycbwsP3nwh8UAhAcuxhP9ni3LMXWeWI9Gf1GqLAS2lnHZzwd53DxXsKuxmg8YocqZBokC/exec";   
@@ -75,7 +77,7 @@ void setup()
   //                      for larger pre-allocated frame buffer.
   if(psramFound()){  //是否有PSRAM(Psuedo SRAM)記憶體IC
     config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 60;
+    config.jpeg_quality = 10;
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_SVGA;
@@ -131,7 +133,7 @@ void setup()
       Serial.println("");
   
       for (int i=0;i<5;i++) {   //若連上WIFI設定閃光燈快速閃爍
-        ledcWrite(4,10);
+        ledcWrite(4,1);
         delay(200);
         ledcWrite(4,0);
         delay(200);    
@@ -156,28 +158,36 @@ void setup()
   pinMode(pinLED, OUTPUT);  //設定上拉電阻
 }
 
-void blink(int blink)
-{
-  for (int i = 0; i < blink;i++){
-  digitalWrite(pinLED, LOW);
-  delay(100);
-  digitalWrite(pinLED, HIGH);
-  delay(100);
+void blink(int blink) {
+  for (int i = 0; i < blink; i++) {
+    ledcWrite(4, 5);
+    delay(50);
+    ledcWrite(4, 0);
+    delay(50);
   }
 }
 
+// void loop()
+// {
+//   int v = digitalRead(pinPIR);
+//   Serial.println(v);
+//   if (v==1) {
+//     SendCapturedImage2GoogleDrive();
+//     //Serial.println(SendCapturedImage2GoogleDrive());  //取回傳送結果輸出序列埠
+//     blink(10);
+//     delay(5000);  //視延遲時間設定，最小為5秒
+//   }
+//   else
+//     delay(1000);
+// }
+
 void loop()
 {
-  int v = digitalRead(pinPIR);
-  Serial.println(v);
-  if (v==1) {
-    SendCapturedImage2GoogleDrive();
+
+  SendCapturedImage2GoogleDrive();
     //Serial.println(SendCapturedImage2GoogleDrive());  //取回傳送結果輸出序列埠
-    blink(5);
+    
     delay(5000);  //視延遲時間設定，最小為5秒
-  }
-  else
-    delay(1000);
 }
 
 String SendCapturedImage2GoogleDrive() {
