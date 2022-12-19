@@ -77,7 +77,7 @@ void setup()
   //                      for larger pre-allocated frame buffer.
   if(psramFound()){  //是否有PSRAM(Psuedo SRAM)記憶體IC
     config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 10;
+    config.jpeg_quality = 15;
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_SVGA;
@@ -160,35 +160,28 @@ void setup()
 
 void blink(int blink) {
   for (int i = 0; i < blink; i++) {
-    ledcWrite(4, 5);
+    digitalWrite(pinLED, LOW);
     delay(50);
-    ledcWrite(4, 0);
+    digitalWrite(pinLED, HIGH);
     delay(50);
   }
 }
 
-// void loop()
-// {
-//   int v = digitalRead(pinPIR);
-//   Serial.println(v);
-//   if (v==1) {
-//     SendCapturedImage2GoogleDrive();
-//     //Serial.println(SendCapturedImage2GoogleDrive());  //取回傳送結果輸出序列埠
-//     blink(10);
-//     delay(5000);  //視延遲時間設定，最小為5秒
-//   }
-//   else
-//     delay(1000);
-// }
-
 void loop()
 {
-
-  SendCapturedImage2GoogleDrive();
+  int v = digitalRead(pinPIR);
+  Serial.println(v);
+  if (v==1) {
+    SendCapturedImage2GoogleDrive();
     //Serial.println(SendCapturedImage2GoogleDrive());  //取回傳送結果輸出序列埠
-    
+    blink(10);
     delay(5000);  //視延遲時間設定，最小為5秒
+  }
+  else
+    delay(1000);
 }
+
+
 
 String SendCapturedImage2GoogleDrive() {
   const char* myDomain = "script.google.com";
