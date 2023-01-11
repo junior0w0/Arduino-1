@@ -1,8 +1,10 @@
 
 // const char* ssid     = "Anik";    
 // const char* password = "putra123";  
-const char* ssid     = "Kost Bu Sar";    
-const char* password = "jakalbawah";  
+// const char* ssid     = "Kost Bu Sar";    
+// const char* password = "jakalbawah";  
+const char* ssid     = "visus";    
+const char* password = "visus123";  
 int pinPIR = 12;   
 int pinLED = 33;
 String myScript = "https://script.google.com/macros/s/AKfycbwsP3nwh8UAhAcuxhP9ni3LMXWeWI9Gf1GqLAS2lnHZzwd53DxXsKuxmg8YocqZBokC/exec";   
@@ -18,9 +20,6 @@ String myImage = "&myFile=";
 #include "Base64.h"  
 #include "esp_camera.h"
 
-//Arduino IDE開發版選擇 ESP32 Wrover Module
-
-//ESP32-CAM 安信可模組腳位設定
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -40,12 +39,13 @@ String myImage = "&myFile=";
 
 void setup()
 {
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  //關閉電源不穩就重開機的設定
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  
     
   Serial.begin(115200);
-  Serial.setDebugOutput(true);  //開啟診斷輸出
+  Serial.setDebugOutput(true);
   Serial.println();
 
+  /*SETUP PIN*/
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -75,64 +75,66 @@ void setup()
   //   
   // if PSRAM IC present, init with UXGA resolution and higher JPEG quality
   //                      for larger pre-allocated frame buffer.
-  if(psramFound()){  //是否有PSRAM(Psuedo SRAM)記憶體IC
-    config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 15;
-    config.fb_count = 2;
+
+
+  /* Mengecek apakah ada PSRAM, jika ada kualitas dan ukuran buffer memori akan meningkat. */
+  if(psramFound()){  
+    config.frame_size = FRAMESIZE_UXGA; // Mengatur ukuran frame ke UXGA.
+    config.jpeg_quality = 15; // Menetapkan kualitas, kisarannya dari 0 sampai 63, semakin kecil nilai variabel, semakin baik kualitas foto.
+    config.fb_count = 2; // Menetapkan jumlah buffer memori.
   } else {
     config.frame_size = FRAMESIZE_SVGA;
     config.jpeg_quality = 12;
     config.fb_count = 1;
   }
 
-  //視訊初始化
-  esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
-    Serial.printf("Camera init failed with error 0x%x", err);
+  
+  esp_err_t err = esp_camera_init(&config); // Membuat variabel untuk mengecek error.
+  if (err != ESP_OK) // Apabila configurasi gagal, perangkat akan memulai ulang.
+  {
+    Serial.printf("Camera init failed with error 0x%x", err); 
     ESP.restart();
   }
 
-  //可自訂視訊框架預設大小(解析度大小)
-  sensor_t * s = esp_camera_sensor_get();
-  // initial sensors are flipped vertically and colors are a bit saturated
-  if (s->id.PID == OV3660_PID) {
-    s->set_vflip(s, 1); // flip it back
-    s->set_brightness(s, 2); // up the brightness just a bit
-    s->set_saturation(s, -2); // lower the saturation
-  }
-  // drop down frame size for higher initial frame rate
-  s->set_framesize(s, FRAMESIZE_XGA);    //解析度 UXGA(1600x1200), SXGA(1280x1024), XGA(1024x768), SVGA(800x600), VGA(640x480), CIF(400x296), QVGA(320x240), HQVGA(240x176), QQVGA(160x120), QXGA(2048x1564 for OV3660)
-
-  //s->set_vflip(s, 1);  //垂直翻轉
-  //s->set_hmirror(s, 1);  //水平鏡像
-
-  //閃光燈(GPIO4)
-  ledcAttachPin(4, 4);  
-  ledcSetup(4, 5000, 8);
+  sensor_t * s = esp_camera_sensor_get();// Membuat variabel pointer untuk mengakses konfigurasi sensor.
   
-  WiFi.mode(WIFI_STA);
+  if (s->id.PID == OV3660_PID) // Mengisikan model kamera.
+  {
+    s->set_vflip(s, 1); // Membalikkan gambar.
+    s->set_brightness(s, 2); // Menaikkan tingkat kecerahan.
+    s->set_saturation(s, -2); // Mengurangi saturasi.
+  }
+
+  s->set_framesize(s, FRAMESIZE_XGA);    
+
+
+ 
+  ledcAttachPin(4, 4);  // Menautkan pin GPIO 4 ke Flash LED.
+  ledcSetup(4, 5000, 8); // LED akan menyala dengan frekuensi 5000hz dengan resolusi 8 bit. LED akan mengedip dengan interval 0.2 detik dalam waktu 1 detik. Resolusi bit akan memengaruhi intensitas flash.
+  
+  WiFi.mode(WIFI_STA); // Menetapkan mode WiFi ke mode station, yaitu mode standard.
   
   for (int i=0;i<2;i++) {
-    WiFi.begin(ssid, password);    //執行網路連線
+    WiFi.begin(ssid, password);    // WiFi memulai untuk menjalin koneksi menggunakan SSID dan Password.
   
     delay(1000);
     Serial.println("");
     Serial.print("Connecting to ");
     Serial.println(ssid);
     
-    long int StartTime=millis();
+    long int StartTime=millis(); // Menyimpan waktu mulai dalam millis.
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        if ((StartTime+5000) < millis()) break;    //等待10秒連線
+        if ((StartTime+5000) < millis()) break;    // Mengakhiri LOOP dalam 5 detik.
     } 
   
-    if (WiFi.status() == WL_CONNECTED) {    //若連線成功
+    if (WiFi.status() == WL_CONNECTED) {    
       Serial.println("");
       Serial.println("STAIP address: ");
-      Serial.println(WiFi.localIP());
+      Serial.println(WiFi.localIP()); 
       Serial.println("");
   
-      for (int i=0;i<5;i++) {   //若連上WIFI設定閃光燈快速閃爍
+      for (int i=0;i<5;i++) {  
         ledcWrite(4,1);
         delay(200);
         ledcWrite(4,0);
@@ -143,118 +145,132 @@ void setup()
     }
   } 
 
-  if (WiFi.status() != WL_CONNECTED) {  //若連線失敗
-    ESP.restart();  //重啟電源
+  if (WiFi.status() != WL_CONNECTED) // Memulai ulang perangkat ketika WiFi tidak terkoneksi.
+   {  
+    ESP.restart();  
   } 
           
-  //閃光燈(GPIO4)
   ledcAttachPin(4, 4);  
   ledcSetup(4, 5000, 8);
 
-  //測試傳送影像至Google雲端硬碟
-  SendCapturedImage2GoogleDrive();
+  SendCapturedImage2GoogleDrive(); // Memanggil metode untuk mengirim foto ke Google Drive.
 
-  pinMode(pinPIR, INPUT_PULLUP);  //設定上拉電阻
-  pinMode(pinLED, OUTPUT);  //設定上拉電阻
+  pinMode(pinPIR, INPUT);  // Mengatur pin PIR sebagai input.
+  pinMode(pinLED, OUTPUT);  // Mengatur pin LED sebagai output.
 }
 
 void blink(int blink) {
-  for (int i = 0; i < blink; i++) {
-    digitalWrite(pinLED, LOW);
+  for (int i = 0; i < blink; i++) // Membuat perulangan untuk mengedipkan LED.
+  {
+    digitalWrite(pinLED, LOW); // LED mati.
     delay(50);
-    digitalWrite(pinLED, HIGH);
+    digitalWrite(pinLED, HIGH); // LED menyala.
     delay(50);
   }
 }
 
 void loop()
 {
-  int v = digitalRead(pinPIR);
+  int v = digitalRead(pinPIR); // Membaca input dari PIR.
   Serial.println(v);
-  if (v==1) {
+  if (v==1) // Jika gerakan terdeteksi, maka PIR akan mengirimkan sinyal HIGH yang nantinya akan terbaca sebagai nilai 1.
+  {
     SendCapturedImage2GoogleDrive();
-    //Serial.println(SendCapturedImage2GoogleDrive());  //取回傳送結果輸出序列埠
-    blink(10);
-    delay(5000);  //視延遲時間設定，最小為5秒
+    //Serial.println(SendCapturedImage2GoogleDrive());  
+    blink(10); // Mengedipkan LED sebanyak 10 kali.
+    delay(5000); 
   }
   else
     delay(1000);
 }
 
 
-
+/* Metode mengirim gambar ke Drive */
 String SendCapturedImage2GoogleDrive() {
-  const char* myDomain = "script.google.com";
-  String getAll="", getBody = "";
+  const char* myDomain = "script.google.com"; // Mengatur domain tujuan.
+  String getAll="", getBody = ""; //
   
-  camera_fb_t * fb = NULL;
-  fb = esp_camera_fb_get();  
-  if(!fb) {
+  camera_fb_t * fb = NULL; // Membuat pointer untuk mengakses memori frame buffer. Diberi nilai NULL karena nantinya akan digunakan sebagai parameter untuk mengecek apakah pengambilan gambar berhasil.
+  fb = esp_camera_fb_get();  // Mengambil gambar.
+  if(!fb) // Jika pointer bernilai NULL, maka kode di bawah akan dijalankan.
+  {
     Serial.println("Camera capture failed");
     delay(1000);
-    ESP.restart();
+    ESP.restart(); // Memulai ulang perangkat.
   }  
   
-  Serial.println("Connect to " + String(myDomain));
-  WiFiClientSecure client_tcp;
+  Serial.println("Connect to " + String(myDomain)); 
+  WiFiClientSecure client_tcp; // Membuat objek dari 
   client_tcp.setInsecure();   //run version 1.0.5 or above
   
-  if (client_tcp.connect(myDomain, 443)) {
+  if (client_tcp.connect(myDomain, 443)) //Set IP domain yang digunakan dan Portnya.
+  {
     Serial.println("Connection successful");
     
-    char *input = (char *)fb->buf;
-    char output[base64_enc_len(3)];
-    String imageFile = "data:image/jpeg;base64,";
-    for (int i=0;i<fb->len;i++) {
-      base64_encode(output, (input++), 3);
-      if (i%3==0) imageFile += urlencode(String(output));
+    char *input = (char *)fb->buf; // Membuat variabel pointer, kali ini untuk mengakses buffer.
+    char output[base64_enc_len(3)]; // Membuat character
+    String imageFile = "data:image/jpeg;base64,"; // Membuat string untuk data url sebagai source HTTPS.
+    for (int i=0;i<fb->len;i++) // Melakukan perulangan sebanyak bit frame buffer.
+    {
+      base64_encode(output, (input++), 3); //Melakukan encoding. Variable output digunakan sebagai tempat untuk menyimpan hasil. Variable input sebagai sasaran encoding. 3 adalah panjang input buffer.
+      if (i%3==0) imageFile += urlencode(String(output)); // Ketika mencapai perulangan kelipatan tiga, maka output akan di encoding lagi, kali ini encoding url.
     }
-    String Data = myFoldername+myFilename+myImage;
+    String Data = myFoldername+myFilename+myImage; // Membuat string dimana nama folder, nama file, dan nama image digabungkan menjadi satu.
     
-    client_tcp.println("POST " + myScript + " HTTP/1.1");
-    client_tcp.println("Host: " + String(myDomain));
-    client_tcp.println("Content-Length: " + String(Data.length()+imageFile.length()));
-    client_tcp.println("Content-Type: application/x-www-form-urlencoded");
-    client_tcp.println("Connection: keep-alive");
+
+    /* REQUEST HTTPS */
+    client_tcp.println("POST " + myScript + " HTTP/1.1"); //Melakukan aksi POST ke url google script
+    client_tcp.println("Host: " + String(myDomain)); //Mengatur host sebagai google.script
+    client_tcp.println("Content-Length: " + String(Data.length()+imageFile.length())); //Mengatur panjang sebagai ukuran data + ukuran file image.
+    client_tcp.println("Content-Type: application/x-www-form-urlencoded"); //Mengatur tipe konten sebagai application/x-www-form-urlencoded, sehingga data menjadi key.
+    client_tcp.println("Connection: keep-alive");//Mengatur koneksi untuk tetap terhubung.
     client_tcp.println();
     
-    client_tcp.print(Data);
+    client_tcp.print(Data);//Mengirim value data.
     int Index;
-    for (Index = 0; Index < imageFile.length(); Index = Index+1000) {
-      client_tcp.print(imageFile.substring(Index, Index+1000));
+    for (Index = 0; Index < imageFile.length(); Index = Index+1000) //Melakukan perulangan sampai index melebihi panjang byte image. Ditambah 1000 karena ukuran length masih dalam byte.
+    {
+      client_tcp.print(imageFile.substring(Index, Index+1000)); //Mengirim substring dari imagefile, dengan parameter index dan index+1000. substring(Index, Index+1000) akan me-return karakter pada string, dimulai pada indeks ke Index sampai indeks+1000.
     }
-    esp_camera_fb_return(fb);
+    esp_camera_fb_return(fb); // Mengosongkan frame buffer.
     
     int waitTime = 10000;   // timeout 10 seconds
-    long startTime = millis();
+    long startTime = millis(); // Menambahkan millis ke startime.
     boolean state = false;
     
-    while ((startTime + waitTime) > millis()) {
+    while ((startTime + waitTime) > millis()) // Akan melakukan perulangan selama 10 detik.
+     {
       Serial.print(".");
       delay(100);      
-      while (client_tcp.available()) {
-          char c = client_tcp.read();
-          if (state==true) getBody += String(c);        
-          if (c == '\n') {
-            if (getAll.length()==0) state=true; 
-            getAll = "";
-          } else if (c != '\r')
-            getAll += String(c);
-          startTime = millis();
-       }
-       if (getBody.length()>0) break;
+      while (client_tcp.available()) //Jika koneksi tersedia, maka perulangan akan berjalan.
+      {
+        char c = client_tcp.read(); //Membaca http body dari koneksi.
+        if (state==true) getBody += String(c); //Memasukkan body ke variabel bila state sama dengan true.    
+        if (c == '\n') //Jika body tidak ada.
+        {
+          if (getAll.length()==0) state=true; //Menjadikan variabel state sebagai true.
+          getAll = ""; //Mengosongkan variabel.
+        } else if (c != '\r')//Jika tidak berada di awal line.
+          getAll += String(c);//Memasukkan nilai dari c ke getAll.
+        startTime = millis();//Memasukkan value dari millis ke startTime.
+      }
+       if (getBody.length()>0) break;//Jika panjang body http sudah tidak kosong, maka perulangan dihentikan.
     }
-    client_tcp.stop();
+    client_tcp.stop();//Menghentikan koneksi.
     Serial.println(getBody);
   }
-  else {
+  else //Mengirim pesan gagal apabila tidak terkoneksi
+  {
     getBody="Connected to " + String(myDomain) + " failed.";
     Serial.println("Connected to " + String(myDomain) + " failed.");
   }
-  return getBody;
+  return getBody;//mereturn value getBody
 }
 
-//https://github.com/zenmanenergy/ESP8266-Arduino-Examples/
+
+/*ENCODING URl sumber = https://github.com/zenmanenergy/ESP8266-Arduino-Examples */
+
+
 String urlencode(String str)
 {
     String encodedString="";
